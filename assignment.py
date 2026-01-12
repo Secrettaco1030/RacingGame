@@ -6,6 +6,7 @@ score=0
 #https://www.pygame.org/docs/ref/rect.html#pygame.Rect.inflate_ip
 #pygame.mixer.music.load("sounds/gamemusic.mp3")
 #pygame.mixer.music.play(-1)
+#pygame.mixer.music.set_volume(1)
 car_y=random.randint(0,50)
 car_y1=random.randint(70,100)
 Screen_Width = 800
@@ -20,6 +21,13 @@ lanes=[lane1_x,lane2_x, lane3_x, lane4_x]
 background=pygame.image.load("images/road.png")
 home_button=pygame.image.load("images/homebutton2.jpg")
 home_button=pygame.transform.scale(home_button, (100, 100))
+ghost_powerup=pygame.image.load("images/ghostmode.png")
+ghost_powerup=pygame.transform.scale(ghost_powerup, (160, 160))
+powerup_rect=ghost_powerup.get_rect()
+power_rect=random.choice(lanes)
+powerup_rect.y=random.randint(-600,-100)
+powerup_active=True
+
 
 background=pygame.transform.scale(background, (Screen_Width, Screen_Height))
 screen.blit(background,(0,0))
@@ -27,7 +35,7 @@ bg_speed=5
 background_y=0
 Light_grey=(112, 108, 97)
 restart_button=pygame.Rect(250,450,300,70)
-score_counter=pygame.Rect(670,65,100,50)
+score_counter=pygame.Rect(670,40,100,50)
 score_font = pygame.font.Font("Fonts/TheScoreRegular-ywdy3.otf", 40)
 font_color=(252, 191, 73)
 font1=pygame.font.Font("Fonts/GamepauseddemoRegular-RpmY6.otf",150)
@@ -62,18 +70,27 @@ enemy2_rect=enemy_car2.get_rect()
 #enemy2_rect.inflate_ip(-20,-40)
 enemy3_rect=enemy_car3.get_rect()
 #enemy3_rect.inflate_ip(-20,-40)
+ghost_mode=False
+ghost_timer=0
+ghost_duration=5
 
 
 
+def spawn_enemies():
+    spawn_lane=random.sample(lanes, 3)
+    base_y=random.randint(-800, -600)
+    gap=220
 
-enemy1_rect.y = random.randint(-600, -100)
-enemy2_rect.y = random.randint(-600, -100)
-enemy3_rect.y = random.randint(-600, -100)
+    enemy1_rect.y = base_y
+    enemy2_rect.y = base_y - gap
+    enemy3_rect.y = base_y - gap * 2
+    enemy1_rect.centerx = spawn_lane[0]
+    enemy2_rect.centerx = spawn_lane[1]
+    enemy3_rect.centerx = spawn_lane[2]
 
-spawn_lane=random.sample(lanes,3)
-enemy1_rect.centerx = spawn_lane[0]
-enemy2_rect.centerx = spawn_lane[1]
-enemy3_rect.centerx = spawn_lane[2]
+
+
+(spawn_enemies())
 
 bg_y=0
 bg_speed=5
@@ -99,14 +116,7 @@ while running:
                 player_rect.bottom = Screen_Height
 
                 # Reset enemy positions and lanes
-                spawn_lane = random.sample(lanes, 3)
-                enemy1_rect.y = random.randint(-600, -100)
-                enemy2_rect.y = random.randint(-600, -100)
-                enemy3_rect.y = random.randint(-600, -100)
-
-                enemy1_rect.centerx = spawn_lane[0]
-                enemy2_rect.centerx = spawn_lane[1]
-                enemy3_rect.centerx = spawn_lane[2]
+                spawn_enemies()
 
         bg_y+=bg_speed
         if bg_y>Screen_Height:
@@ -117,6 +127,22 @@ while running:
         keys=pygame.key.get_pressed()
 
         score +=1/30
+        if score>30:
+            enemy_speed=8
+            bg_speed=8
+        if score>60:
+            enemy_speed=10
+            bg_speed=10
+
+        if powerup_active:
+            powerup_rect.y+=enemy_speed
+            screen.blit(ghost_powerup, (powerup_rect.x, powerup_rect.y))
+
+
+            if powerup_rect.y>Screen_Height:
+                powerup_rect.y=random.randint(-600,-100)
+                powerup_rect.x=random.choice(lanes)
+
 
         if keys[pygame.K_LEFT] and player_x>0:
             player_x -=7
@@ -135,17 +161,8 @@ while running:
             enemy2_rect.y+=enemy_speed
             enemy3_rect.y+=enemy_speed
 
-        if (enemy1_rect.y> Screen_Height or
-            enemy2_rect.y > Screen_Height or
-            enemy3_rect.y > Screen_Height):
-            spawn_lane=random.sample(lanes,3)
-            enemy1_rect.y=random.randint(-600, -100)
-
-            enemy2_rect.y=random.randint(-600, -100)
-            enemy3_rect.y=random.randint(-600, -100)
-            enemy1_rect.centerx=spawn_lane[0]
-            enemy2_rect.centerx=spawn_lane[1]
-            enemy3_rect.centerx=spawn_lane[2]
+        if (enemy3_rect.y > Screen_Height):
+            spawn_enemies()
 
 
 
@@ -157,22 +174,31 @@ while running:
 
         pygame.draw.rect(screen,Light_grey, score_counter)
         score_text=score_font.render(str(round(score)), True, (255,0,0))
-        screen.blit(score_text,(700,64))
+        screen.blit(score_text,(705,48))
 
         #pygame.draw.rect(screen, (255, 0, 0), enemy1_rect, 2)
         #pygame.draw.rect(screen, (0, 255, 0), enemy2_rect, 2)
         #pygame.draw.rect(screen, (0, 0, 255), enemy3_rect, 2)
 
 
-        if (player_hitbox.colliderect(enemy1_rect) or
-            player_hitbox.colliderect(enemy2_rect) or
-            player_hitbox.colliderect(enemy3_rect)):
-            game_over=True
-            bg_speed=0
-            enemy_speed=0
 
-        screen.blit(player_car,(player_x, player_y))
 
+        if powerup_active and player_hitbox.colliderect(powerup_rect):
+            ghost_mode=True
+            ghost_timer=pygame.time.get_ticks()
+            powerup_active=False
+        if ghost_mode:
+            elapsed = (pygame.time.get_ticks() - ghost_timer) / 1000  # convert to seconds
+            if elapsed >= ghost_duration:
+                ghost_mode = False
+        if not ghost_mode:
+            if (player_hitbox.colliderect(enemy1_rect) or
+                    player_hitbox.colliderect(enemy2_rect) or
+                    player_hitbox.colliderect(enemy3_rect)):
+                game_over = True
+                bg_speed = 0
+                enemy_speed = 0
+        screen.blit(player_car, (player_x, player_y))
 
 
         if game_over:
