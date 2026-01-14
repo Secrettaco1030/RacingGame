@@ -113,7 +113,7 @@ while running:
     if game_state=="Menu":
         screen.blit(menu_background, (0, 0))
         pygame.draw.rect(screen,(100, 200, 100), start_button)
-        screen.blit(menu_font.render("START", True, font_color), (start_button.x+60, start_button.y+25))
+        screen.blit(menu_font.render("START", True, font_color), (start_button.x+100, start_button.y+20))
         if mousepressed and start_button.collidepoint(mouseX, mouseY):
             game_state="Playing"
             score=0
@@ -151,19 +151,21 @@ while running:
             if powerup_rect.y > Screen_Height:
                 powerup_rect.y = random.randint(-600, -100)
                 powerup_rect.x = random.choice(lanes)
-
+        road_left=100
+        road_right=700
         if keys[pygame.K_LEFT] and player_x > 0:
             player_x -= 7
-            player_y -= 3
+            #player_y -= 3
         if keys[pygame.K_RIGHT] and player_x < Screen_Width - 120:
             player_x += 7
-            player_y -= 3
+            #player_y -= 3
         if keys[pygame.K_UP] and player_y > 0:
             player_y -= 7
         if keys[pygame.K_DOWN] and player_y < Screen_Height - 200:
             player_y += 7
         player_hitbox.center = (player_x + 60, player_y + 100)
 
+        player_x=max(road_left, min(road_right-120, player_x))
 
         if not game_over:
             enemy1_rect.y+=enemy_speed
@@ -196,9 +198,12 @@ while running:
             if (player_hitbox.colliderect(enemy1_rect) or
                     player_hitbox.colliderect(enemy2_rect) or
                     player_hitbox.colliderect(enemy3_rect)):
-                game_over = True
-                bg_speed = 0
-                enemy_speed = 0
+                    #crash_sound=pygame.mixer.Sound("sounds/car-crash-sound-effect-376874.mp3")
+                    #crash_sound.play()
+                    game_over = True
+
+                    bg_speed = 0
+                    enemy_speed = 0
         screen.blit(player_car, (player_x, player_y))
 
         if game_over:
@@ -212,7 +217,8 @@ while running:
             screen.blit(font2.render("Restart", True, font_color), (280, 445))
 
 
-        if mousepressed and restart_button.collidepoint(pygame.mouse.get_pos()):
+
+        if mousepressed and restart_button.collidepoint(pygame.mouse.get_pos()) :
             if restart_button.collidepoint(mouseX, mouseY):
                 game_over = False
                 bg_speed = 5
