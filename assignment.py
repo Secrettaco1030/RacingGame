@@ -1,11 +1,20 @@
+#Program Name:Highway Havoc
+#Program Description: This is a car game where the objective is to dodge cars and get the high score, there are powerups that allow you to phase through cars for 5 seconds
+#References:https://www.pygame.org/docs/ref/rect.html#pygame.Rect.inflate_ip
+#Known Bugs:
+#Program Reflection:I met all level 3 requirements
+#Program Reflection:the program has elements of randomness and replayability and increasing difficulty. The powerups are a creative idea allowing users to phase through the cars, making it a really cool game.
+#Program Reflection: There is background music that is added to the game that plays while you drive. 
+
+
+
 import pygame
 pygame.init()
 import random
 
-#https://www.pygame.org/docs/ref/rect.html#pygame.Rect.inflate_ip
-#pygame.mixer.music.load("sounds/gamemusic.mp3")
-#pygame.mixer.music.play(-1)
-#pygame.mixer.music.set_volume(1)
+pygame.mixer.music.load("sounds/gamemusic.mp3")
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(1)
 car_y=random.randint(0,50)
 car_y1=random.randint(70,100)
 Screen_Width = 800
@@ -27,6 +36,7 @@ lanes=[lane1_x,lane2_x, lane3_x, lane4_x]
 background=pygame.image.load("images/road.png")
 home_button=pygame.image.load("images/homebutton2.jpg")
 home_button=pygame.transform.scale(home_button, (100, 100))
+home_rect=home_button.get_rect()
 ghost_powerup=pygame.image.load("images/ghostmode.png")
 ghost_powerup=pygame.transform.scale(ghost_powerup, (160, 160))
 menu_background=pygame.image.load("images/menu_background.png")
@@ -35,6 +45,7 @@ menu_background=pygame.transform.scale(menu_background, (Screen_Width, Screen_He
 
 powerup_rect=ghost_powerup.get_rect()
 power_rect=random.choice(lanes)
+#spawns it in a random lane
 powerup_rect.y=random.randint(-600,-100)
 
 
@@ -50,6 +61,9 @@ score_counter=pygame.Rect(670,40,100,50)
 score_font = pygame.font.Font("Fonts/TheScoreRegular-ywdy3.otf", 40)
 font_color=(252, 191, 73)
 font1=pygame.font.Font("Fonts/GamepauseddemoRegular-RpmY6.otf",150)
+font2=pygame.font.Font("Fonts/GamepauseddemoRegular-RpmY6.otf",40)
+
+
 font=pygame.font.SysFont("Arial", 30)
 
 player_car=pygame.image.load("images/redcar1.png")
@@ -71,16 +85,14 @@ enemy_car3=pygame.transform.scale(enemy_car3, (110, 180))
 
 player_rect=player_car.get_rect()
 player_rect.inflate_ip(-40,-40)
+#makes it smaller than the car, to make gameplay easier
 player_rect.centerx = (Screen_Width // 2)
 player_rect.bottom = Screen_Height
 
 
 enemy1_rect=enemy_car.get_rect()
-#enemy1_rect.inflate_ip(-20,-40)
 enemy2_rect=enemy_car2.get_rect()
-#enemy2_rect.inflate_ip(-20,-40)
 enemy3_rect=enemy_car3.get_rect()
-#enemy3_rect.inflate_ip(-20,-40)
 ghost_mode=False
 ghost_timer=0
 ghost_duration=5
@@ -88,6 +100,9 @@ ghost_duration=5
 
 
 def spawn_enemies():
+    #function to place the enemies in random lanes and y value
+    #Parameters:None
+    #Returns:None
     spawn_lane=random.sample(lanes, 3)
     base_y=random.randint(-800, -600)
     gap=220
@@ -128,6 +143,23 @@ while running:
             powerup_rect.x=random.choice(lanes)
             powerup_rect.y=random.randint(-600, -100)
     elif game_state=="Playing":
+        if mousepressed and home_rect.collidepoint(mouseX, mouseY):
+            game_state="Menu"
+            game_over = False
+            score = 0
+            bg_speed = 5
+            enemy_speed=5
+            ghost_mode=False
+            ghost_timer=0
+            powerup_active = True
+            player_rect.centerx=Screen_Width // 2
+            player_rect.bottom=Screen_Height
+            spawn_enemies()
+            powerup_rect.x = random.choice(lanes)
+            powerup_rect.y = random.randint(-600, -100)
+            pygame.display.flip()
+            clock.tick(60)
+            continue
         bg_y += bg_speed
         if bg_y > Screen_Height:
             bg_y = 0
@@ -137,7 +169,9 @@ while running:
         keys = pygame.key.get_pressed()
 
         score += 1 / 30
+        #score system
         if score > 30:
+            #makes it harder along the way
             enemy_speed = 8
             bg_speed = 8
         if score > 60:
@@ -155,10 +189,10 @@ while running:
         road_right=700
         if keys[pygame.K_LEFT] and player_x > 0:
             player_x -= 7
-            #player_y -= 3
+
         if keys[pygame.K_RIGHT] and player_x < Screen_Width - 120:
             player_x += 7
-            #player_y -= 3
+
         if keys[pygame.K_UP] and player_y > 0:
             player_y -= 7
         if keys[pygame.K_DOWN] and player_y < Screen_Height - 200:
@@ -166,6 +200,7 @@ while running:
         player_hitbox.center = (player_x + 60, player_y + 100)
 
         player_x=max(road_left, min(road_right-120, player_x))
+        #restricts player from going off the road
 
         if not game_over:
             enemy1_rect.y+=enemy_speed
@@ -182,15 +217,18 @@ while running:
 
         pygame.draw.rect(screen,Light_grey, score_counter)
         score_text=score_font.render(str(round(score)), True, (255,0,0))
+        #made sure to round the number to make it a whole number
         screen.blit(score_text,(705,48))
-
+        screen.blit(player_car, (player_x, player_y))
         if powerup_active and player_hitbox.colliderect(powerup_rect):
             ghost_mode=True
             ghost_timer=pygame.time.get_ticks()
             powerup_active=False
         if ghost_mode:
-            elapsed = (pygame.time.get_ticks() - ghost_timer) / 1000  # convert to seconds
+            elapsed = (pygame.time.get_ticks() - ghost_timer) / 1000  # only allows the powerup for 5 seconds
+            screen.blit(font2.render(str(round(elapsed)), True, (255,0,0)),(200,200))
             player_car.set_alpha(100)
+            #makes the car a little transparent
             if elapsed >= ghost_duration:
                 ghost_mode = False
                 player_car.set_alpha(255)
@@ -204,7 +242,7 @@ while running:
 
                     bg_speed = 0
                     enemy_speed = 0
-        screen.blit(player_car, (player_x, player_y))
+
 
         if game_over:
             screen.blit(background, (0, bg_y - Screen_Height))
